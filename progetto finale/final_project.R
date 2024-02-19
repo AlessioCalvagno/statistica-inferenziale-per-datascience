@@ -158,9 +158,57 @@ quantitative.summary(Cranio)
 # I could do also a Z-test if the population variance is known... 
 # Let's see what literature says!
 
+# Reference link: https://www.who.int/tools/child-growth-standards/standards
+# WHO standards for these two variables state a normal distribution
+# regardless nationality and cultural background. 
+# From FAQ: "The standards describe normal child growth from birth
+#  to 5 years under optimal environmental conditions and can be applied 
+#  to all children everywhere, regardless of ethnicity, 
+#  socioeconomic status and type of feeding." 
+#  
+#  So we can assume that weight and length have a normal distribution in
+#  population, with a known mean.
+#  The mean value can be taken from tables at column M (mean) or at the
+#  value with Z-score = 0 (that corresponds to mean according to z-distribution).
+
+# However, like in most medical studies, the values are separated for males
+# and females, so one can't do a single t test with all sample data, but
+# first one must divide data in two groups (male and females) and then 
+# compute a t test for weight and one for length for each group.
+
+Lunghezza_M = Lunghezza[Sesso == "M"]
+Lunghezza_F = Lunghezza[Sesso == "F"]
+
+Peso_M = Peso[Sesso == "M"]
+Peso_F = Peso[Sesso == "F"]
+
+#From WHO tables
+weight_mean_M = 3.3464*1000 #g
+weight_mean_F = 3.2322*1000 #g
+length_mean_M = 49.8842*10 #mm
+length_mean_F = 49.1477*10 #mm
+
+
 #Replace mu = 0 with actual value taken from literature
-t.test(Lunghezza,mu=0) #two sided (default) - alpha = 5% (default)
-t.test(Peso,mu=0)
+#t.test(Lunghezza,mu=0) #two sided (default) - alpha = 5% (default)
+#t.test(Peso,mu=0)
+
+#two sided (default) - alpha = 5% (default)
+#weight
+t.test(Peso_M, mu = weight_mean_M)
+t.test(Peso_F, mu = weight_mean_F)
+
+#length
+t.test(Lunghezza_M, mu = length_mean_M)
+t.test(Lunghezza_F, mu=length_mean_F)
+
+#Only for male length I have p-value > alpha... Curious...
+
+
+#5 differences between Male and Females for other vars.
+#Chi squared test? Or always t-test?
+
+
 
 
 
