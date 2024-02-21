@@ -16,7 +16,7 @@ row.names(tabella) <- c("analfabeta",
                         "superiore",
                         "universitaria")
 
-install.packages("ggpubr")
+# install.packages("ggpubr")
 ggpubr::ggballoonplot(data=as.data.frame(tabella),
                       fill="blue")
 

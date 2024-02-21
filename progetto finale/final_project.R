@@ -6,6 +6,21 @@ require(ggthemes)
 require(scales)
 require(moments)
 require(colorspace)
+require(car)
+
+
+#TODO: CAPIRE COME GESTIRE GLI OUTLIER. BISOGNA FARE PULIZIA DEI DATI E DOPO FARE
+#LE CONSIDERAZIONI SUI TEST STATISTICI E IL RESTO.
+#QUINDI L'IDEA È: PRIMA FACCIO L'ANALISI DESCRITTIVA SUL DATA SET COME È FORNITO
+#E POI RIFACCIO LA DESCRIZIONE SUL DATASET RIPULITO.
+#
+#DOPO DI CHE FAI I PUNTI SEGUENTI(DAL PUNTO 4 IN POI) CON IL DATASET RIPULITO,
+#ALTRIMENTI I RISULTATI SONO FALSATI.
+
+#Avendo già fatto parte del codice per questi punti, alla fine dei conti il lavoro
+#non è sprecato: cambiano i risultati e le considerazioni da fare (che vanno più
+#nel report che qui), ma la sintassi delle funzioni è la stessa.
+
 
 setwd("C:/Users/aless/Desktop/MASTER DATA SCIENCE/statistica-inferenziale-per-datascience/progetto finale")
 
@@ -193,26 +208,106 @@ length_mean_F = 49.1477*10 #mm
 #t.test(Lunghezza,mu=0) #two sided (default) - alpha = 5% (default)
 #t.test(Peso,mu=0)
 
+#Before computing t-test we must check the assumptions: 
+# - Independent values: data are from different people, so they don't 
+# affect each other.
+# - Random sample data: data is collected randomly from newborn 
+# babies population (we trust whoi collected data)
+# - Normal distribution: we can check it with a shapiro-wilk test. 
+# If data are not normally distributed, a non-parametric test must be
+# used.
+
+#Shapiro test for weight:
+shapiro.test(Peso_M)
+shapiro.test(Peso_F)
+
+#Shapiro test for length:
+shapiro.test(Lunghezza_M)
+shapiro.test(Lunghezza_F)
+
+#For each variable we get p < 5% (here p is around 1e-16), so there is
+#a strong evidence that data are not normally distributed -> t-test cannot 
+#be used. To test mean values, a Wilcox
+
 #two sided (default) - alpha = 5% (default)
 #weight
-t.test(Peso_M, mu = weight_mean_M)
-t.test(Peso_F, mu = weight_mean_F)
+# t.test(Peso_M, mu = weight_mean_M)
+# t.test(Peso_F, mu = weight_mean_F)
+wilcox.test(Peso_M, mu = weight_mean_M)
+wilcox.test(Peso_F, mu = weight_mean_F)
+
+
 
 #length
-t.test(Lunghezza_M, mu = length_mean_M)
-t.test(Lunghezza_F, mu=length_mean_F)
-
-#Only for male length I have p-value > alpha... Curious...
-
-
-#5 differences between Male and Females for other vars.
-#Chi squared test? Or always t-test?
+# t.test(Lunghezza_M, mu = length_mean_M)
+# t.test(Lunghezza_F, mu=length_mean_F)
+wilcox.test(Lunghezza_M, mu = length_mean_M)
+wilcox.test(Lunghezza_F, mu = length_mean_F)
 
 
+##5 differences between Male and Females for other vars.
+#Chi squared test? Or always t-test? 
+#Chi squared is more suitable for qualitative variables (compare frequency 
+#distribution of a categorical variable between two or more groups).
+#t-test (or Wilcoxon test) is for numeric (quantitative) variables.
+
+#Considering the medical contex, the variables where i can have some differences
+#between male and females are the medical ones, that is:
+# - Head circumference
+# - Weight
+# - Length
+# - Pregnancy weeks.
+#For other variables there is no sense to compute differences between male and
+#females babies (for example I'm not expecting some relationship between sex and
+#the hospital where the baby was born).
+#
+#Due to these considerations the appropriate test here is the t-test. 
+#In this case the two-samples t-test is used (independent groups).
+
+#Separation in two groups (already done for weight and length)
+
+Gestazione_M = Gestazione[Sesso == "M"]
+Gestazione_F = Gestazione[Sesso == "F"]
+Cranio_M = Cranio[Sesso == "M"]
+Cranio_F = Cranio[Sesso == "F"]
+
+#First of all let's test if the variance is similar between groups:
+leveneTest(Gestazione~Sesso, data = newborn_data) #Test must be not significant
+#p-value = 0.068 -> test not significant (alpha=5%) -> assume equal variance
+
+#Normality test in two groups
+shapiro.test(Gestazione_M)
+shapiro.test(Gestazione_F)
+#Data not normally distributed -> use a Wilcox test.
+wilcox.test(Gestazione~Sesso, data = newborn_data)
+# wilcox.test(Gestazione_M,Gestazione_F) #equivalent syntax (same p-value)
+# p-value < alpha (5%) -> there is a significant mean difference
 
 
+leveneTest(Cranio~Sesso, data = newborn_data)  #Test must be not significant
+#p-value = 0.274 -> test not significant (alpha=5%) -> assume equal variance
+
+#Normality test in two groups
+shapiro.test(Cranio_M)
+shapiro.test(Cranio_F)
+#Data not normally distributed -> use a Wilcox test.
+wilcox.test(Cranio~Sesso, data = newborn_data)
+# p-value < alpha (5%) -> there is a significant mean difference
 
 
+##6 in some hospitals there are more caesarean childbirth than natural ones.
+##Let's check if it's true.
 
+# In this case we must compare frequency distributions of two qualitative variables.
+# Chi squared test is the tool.
+test.indipendency=chisq.test(x=Tipo.parto,y=Ospedale)
 
+test.indipendency$p.value
+# p-value = 0.578 -> can't reject H0 -> can't determine an association between
+# the two variables (i.e. it's not true that some hospitals prefer caesarean birth)
+
+#Visualize the contingency matrix
+ggpubr::ggballoonplot(data=as.data.frame(test.indipendency$observed),
+                      fill="blue")
+#Actually there isn't a pattern in balloon plot
 
