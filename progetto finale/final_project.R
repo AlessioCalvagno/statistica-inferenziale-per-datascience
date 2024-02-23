@@ -25,7 +25,7 @@ require(car)
 setwd("C:/Users/aless/Desktop/MASTER DATA SCIENCE/statistica-inferenziale-per-datascience/progetto finale")
 
 #1
-newborn_data = read.csv("neonati.csv",sep = ",")
+newborn_data = read.csv("neonati.csv",sep = ",", stringsAsFactors = T)
 attach(newborn_data)
 
 #2
@@ -303,11 +303,54 @@ wilcox.test(Cranio~Sesso, data = newborn_data)
 test.indipendency=chisq.test(x=Tipo.parto,y=Ospedale)
 
 test.indipendency$p.value
-# p-value = 0.578 -> can't reject H0 -> can't determine an association between
+# p-value = 0.578 -> can't reject H0 (alpha = 5%) -> can't determine an association between
 # the two variables (i.e. it's not true that some hospitals prefer caesarean birth)
 
 #Visualize the contingency matrix
 ggpubr::ggballoonplot(data=as.data.frame(test.indipendency$observed),
                       fill="blue")
 #Actually there isn't a pattern in balloon plot
+
+
+#### MULTIDIMENSIONAL ANALYSIS ####
+
+##1 Check relationships between variable pairs. Pay attention to response variable.
+
+#Compute the Pearson correlation factor (r) between all pairs. Here the snippet
+#from official doc is used.
+
+panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
+{
+    usr <- par("usr"); on.exit(par(usr))
+    par(usr = c(0, 1, 0, 1))
+    r <- (cor(x, y))
+    txt <- format(c(r, 1), digits = digits)[1]
+    txt <- paste0(prefix, txt)
+    if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
+    text(0.5, 0.5, txt, cex = 1.5)
+}
+#correlations
+# Rimuovi le ultime 3 colonne dal dataframe <- se metto stringsAsFactor=T in read.csv non serve
+df_senza_ultime_3 = newborn_data[, -c((ncol(newborn_data)-2):ncol(newborn_data))]
+
+# pairs(df_senza_ultime_3,lower.panel=panel.cor, upper.panel=panel.smooth) 
+pairs(newborn_data,lower.panel=panel.cor, upper.panel=panel.smooth)
+
+#TODO: commentare quello che esce fuori
+#Attenzione alle variabili qualitative: qui sto usando correlazione di Pearson
+#che per queste variabili non va bene del tutto
+
+##2 Compute a linear regression model with all variables
+
+#first check normality of response variable (Peso)
+shapiro.test(Peso)
+
+mod = lm(Peso~., data = newborn_data)
+summary(mod)
+
+#Per tutti gli altri punti, prima bisogna fare data cleaning, altrimenti i commenti
+#e il resto sono falsati
+
+
+
 
