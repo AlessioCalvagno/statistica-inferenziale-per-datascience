@@ -98,8 +98,9 @@ variability.summary = function(x) {
     x_var = var(x)
     x_sigma = sqrt(x_var)
     x_CV = x_sigma/x_mu * 100 #coefficient of variability
+    x_IQR=IQR(x)
     
-    d = data.frame(n = n, mu=x_mu,variance = x_var,sigma = x_sigma, CV = x_CV)
+    d = data.frame(n = n, mu=x_mu,variance = x_var,sigma = x_sigma, CV = x_CV, IQR = x_IQR)
     return(d)
 }
 
@@ -162,6 +163,197 @@ quantitative.summary(Lunghezza)
 quantitative.summary(Cranio)
 
 ## All other quantitative vars show no weird things.
+
+################# DATA CLEANING ####################
+
+#First step: Missing values.
+#First missing values must be checked and handled (if there is any).
+#To compute the number of missing values for each variable:
+colSums(is.na(newborn_data))
+
+#There are no missing values in this data set, so we can move on second step. 
+
+#Second step: Outliers.
+
+#In previous charts one can see that there are a lot of outliers in qualitative
+#variables. How many of them are real anomalous? Are they really anomalous or 
+#are they however representative of some real situation? If an anomalous value is
+#found, how to handle it? 
+#To answer to all these questions one must refer to so called "domain knowledge", 
+#that is, to check some reference value that can be found in literature for each variable.
+#
+#In this case study the IQR method is used to discover outliers: 
+#If a record, for a variable, has a value outside the range [Q1-1.5*IQR, Q3+1.5*IQR]
+#it's considered an outlier. We recollect that IQR = Q3 - Q1.
+# These records are displayed in the previous box plots as
+#dots outside whiskers.
+
+##Anni.madre
+#First anomaly is found in mother's age variable.
+#From statistical summary the relative minimum is 14.5 (i.e. Q1 - 1,5*IQR).
+#In data set we have two values equal to 14, one equal to 13 and two other
+#record with 0 and 1.
+#The former values (13 and 14) can't be considered anomalies since it's biologically
+#possible to have a pregnancy at that age. 
+#As for the latter (0 and 1) they're a clear example of anomalous values, since 
+#it's impossible for human to have a pregnancy at that age.   
+
+#As for the other outliers, here we have a relative maximum of 42.5 (i.e. Q3 + 1.5*IQR).
+#In this case menopause process must be taken in account:
+#From literature (
+#https://www.menopause.org/for-women/menopauseflashes/menopause-symptoms-and-treatments/menopause-101-a-primer-for-the-perimenopausal
+#https://www.nhs.uk/conditions/menopause/
+#https://www.nia.nih.gov/health/menopause/what-menopause
+#) the average age when menopause starts is 51. Even if some women experience menopause
+#earlier (even between 40 and 58 years), in this case we haven't enough information
+#to say that women with age > 42.5 (relative maximum) are in menopause (and so they are outliers),
+#so these records are considered valid.
+
+##Gestazione
+#Our data is perfectly in line with literature (
+#https://www.health.ny.gov/community/pregnancy/why_is_40_weeks_so_important.htm
+#https://www.betterhealth.vic.gov.au/health/healthyliving/pregnancy-week-by-week
+#):
+#Average human gestation period is 40 weeks, but babies are considered 
+#'full term' if they are born anywhere between 37-42 weeks.
+#In our data we have mean and median values close to these reference 
+#(mean is 38.98 weeks, median is 39 weeks), and the quartiles are aligned too: 
+#Q1 is 38 weeks, Q3 is 40 weeks, and we have also a little Coefficient of variation CV
+#(around 4%) that means that data are quite centered around mean value.
+#From violin plot note as 40 weeks is also the mode, so perfectly in line with standards.
+#As for outliers here there aren't values above relative maximum, while there are
+#several values under relative minimum (here 35 weeks).
+N_outliers_gestazione = length(Gestazione[Gestazione < 35])
+N_outliers_gestazione #67 records (2.68% of data)
+
+#These are cases of preterm births. According to literature:
+#Extremely preterm infants are born 23 through 28 weeks.
+#Moderately preterm infants are born between 29 and 33 weeks.
+#Late preterm infants are born between 34 and 37 weeks.
+
+#In our data the minimum is 25 weeks, so with available data all records are valid,
+#and babies born between 25 and 35 weeks are considered preterm, but this report
+#doesn't account for the difference between preterm and full term births.
+
+##N.gravidanze
+#Here the only real limit is that this variable must be >=0, and that's our case.
+#Even if there isn't a real maximum value, one could do some calculations...
+#A woman has a fertile life of about 38 years, 
+#i.e. 51 (average menopause start) - 13 (average age for a girl's first period).
+#Doing a simply but large (default) approximation one can say that a woman can have
+#one pregnancy per year; so, in total a woman can have up to 38 pregnancies:
+#even if that value is very huge (and infrequent) it's however far from maximum in
+#our data (that is 12 pregnancies before the one that is recorded here), so even 
+#there are some values outside whiskers, all data are possible and so valid regarding this variable.
+
+##Peso
+#C'È DA DIVENTARE SCEMI QUI. OUTLIER Sì O NO? 
+#A SENTIMENTO MI SENTO DI DIRE DI Sì, MA COME OGNI COSA "DIPENDE". 
+#E CHE DIAVOLO.
+#
+#
+#Literature (https://www.wikiwand.com/en/Low_birth_weight) says that:
+#Birth weight may be classified as:
+#
+# High birth weight (macrosomia): greater than 4,200 g (9 lb 4 oz)
+# Normal weight (term delivery): 2,500–4,200 g (5 lb 8 oz – 9 lb 4 oz)
+# Low birth weight: less than 2,500 g (5 lb 8 oz)
+# Very low birth weight (VLBW): less than 1,500 g (3 lb 5 oz)
+# Extremely low birth weight: less than 1,000 g (2 lb 3 oz)
+#
+#In our sample there are both full term and preterm births, so there isn't an universal
+#reference value, so, in order to determine if a weight value is valid or not,
+# the gestational age (that here is the variable "Gestazione") must be 
+#taken in account.
+#
+#In literature (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5261648/#pmed.1002220.s009
+#) there is a table where are listed percentiles of estimated fetal weight vs 
+#gestational age in weeks.
+#According to S1 table of this article we have that weight depends on gestational age,
+#i.e. weeks of gestation.
+#Without going too much in detail we can visualize the curves of 5th, 50th, and 95th
+#percentiles overlaid on a scatterplot of our data, just to get an idea if out sample is
+#too far from this reference.
+
+peso_min_rel = quantile(Peso,0.25)-1.5*IQR(Peso)
+peso_max_rel = quantile(Peso,0.75)+1.5*IQR(Peso)
+N_outliers_weight = length(Peso[Peso < peso_min_rel]) + length(Peso[Peso > peso_max_rel])
+N_outliers_weight #69 records (2.76% of data)
+
+#TODO: 
+#Fai un grafico con ggplot con più livelli, dove il primo livello è dato dalle 
+#curve di riferimento (quindi prese dalla tabella dell'articolo) e il secondo è
+#uno scatter plot della tua nuvola di punti. 
+#
+# PROPOSTA DI PROF AI
+#
+# library(ggplot2)
+# 
+# # Creazione dei dataframe come nell'esempio precedente
+# df1 <- data.frame(
+#     x = 1:10,
+#     y = (1:10)^2
+# )
+# 
+# df2 <- data.frame(
+#     x = 1:10 + runif(10, -1, 1), 
+#     y = (1:10)^2 + runif(10, -10, 10)
+# )
+# 
+# # Creazione del grafico sovrapposto con legende
+# ggplot() +
+#     geom_line(data = df1, aes(x = x, y = y, color = "Curva di riferimento"), linetype = "dashed") +  # Line plot con legenda e tratteggiato
+#     geom_point(data = df2, aes(x = x, y = y, color = "Nuvola di punti")) +  # Scatter plot con legenda
+#     scale_color_manual(values = c("Curva di riferimento" = "blue", "Nuvola di punti" = "red")) +  # Specifica dei colori per le legende
+#     theme_minimal() +
+#     labs(title = "Line Plot sovrapposto a Scatter Plot",
+#          x = "Asse X", y = "Asse Y",
+#          color = "Legenda")  # Personalizzazione del titolo della legenda
+# 
+# 
+# Generato da ProfAI - https://prof.profession.ai/
+
+#Quindi basta passare data separatamente ai vari strati, e non al ggplot() complessivo.
+
+weights.reference = read.csv("./files/weights vs gestational age.csv")
+diameters.reference = read.csv("./files/head diameter vs gestational age.csv")
+
+ggplot()+
+    geom_line(data = weights.reference, aes(x=Gestational.Ages, y = X50, color="50th percentile"), linetype = "dotdash")+ #twodash
+    geom_line(data = weights.reference, aes(x=Gestational.Ages, y = X2.5, color="2.5th percentile"), linetype = "longdash")+ #twodash
+    geom_line(data = weights.reference, aes(x=Gestational.Ages, y = X97.5, color="97.5th percentile"), linetype = "longdash")+ #twodash
+    geom_point(data = newborn_data, aes(x=Gestazione, y = Peso, color = "Sample data"), alpha = 0.2)+
+    scale_color_manual(values = c("50th percentile" = "green", "Sample data" = "blue", "2.5th percentile" = "red", "97.5th percentile"="black"))+
+    scale_x_continuous(breaks = seq(10,45,5))+
+    theme_hc()+
+    labs(title="Weights - sample data and reference", x = "Gestational age", y = "Weight (g)", color = "")
+
+#Forzare i dati fuori dalla striscia a stare dentro? Non so Rick.
+#CHIEDI!
+
+#vignette("ggplot2-specs")
+
+##Cranio
+#Fai la stessa roba che hai fatto per la parte di Peso. E poi dal garfico che esce
+#fuori si vede
+#
+#No, non va bene, perchè sono due misure diverse... UFFAAAAAAAAA
+#MANNAGGINA :((((
+
+
+ggplot()+
+    geom_line(data = diameters.reference, aes(x=Gestational.Ages, y = X50, color="50th percentile"), linetype = "dotdash")+ #twodash
+    geom_line(data = diameters.reference, aes(x=Gestational.Ages, y = X2.5, color="2.5th percentile"), linetype = "longdash")+ #twodash
+    geom_line(data = diameters.reference, aes(x=Gestational.Ages, y = X97.5, color="97.5th percentile"), linetype = "longdash")+ #twodash
+    geom_point(data = newborn_data, aes(x=Gestazione, y = Cranio, color = "Sample data"), alpha = 0.2)+
+    scale_color_manual(values = c("50th percentile" = "green", "Sample data" = "blue", "2.5th percentile" = "red", "97.5th percentile"="black")) +
+    theme_hc()+
+    labs(title="Head diameter", x = "Gestational age", y = "Head diameter")
+
+
+##Lenght 
+#E QUI MI ATTACCO AL CAZZO perchè nell'articolo di prima nella tabella non c'è
+#questa misura (proprio per niente)... Mi sa che mi sto affossando...
 
 
 #4 - mean value for weight and length are statistically equal to the
