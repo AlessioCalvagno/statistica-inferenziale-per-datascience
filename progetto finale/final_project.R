@@ -326,7 +326,7 @@ ggplot()+
     scale_color_manual(values = c("50th percentile" = "green", "Sample data" = "blue", "2.5th percentile" = "red", "97.5th percentile"="black"))+
     scale_x_continuous(breaks = seq(10,45,5))+
     theme_hc()+
-    labs(title="Weights - sample data and reference", x = "Gestational age", y = "Weight (g)", color = "")
+    labs(title="Weights - sample data and reference", x = "Gestational age (weeks)", y = "Weight (g)", color = "")
 
 #Forzare i dati fuori dalla striscia a stare dentro? Non so Rick.
 #CHIEDI!
@@ -348,7 +348,7 @@ ggplot()+
     geom_point(data = newborn_data, aes(x=Gestazione, y = Cranio, color = "Sample data"), alpha = 0.2)+
     scale_color_manual(values = c("50th percentile" = "green", "Sample data" = "blue", "2.5th percentile" = "red", "97.5th percentile"="black")) +
     theme_hc()+
-    labs(title="Head diameter", x = "Gestational age", y = "Head diameter")
+    labs(title="Head diameter", x = "Gestational age (weeks)", y = "Head diameter")
 
 
 ##Lenght 
@@ -542,6 +542,10 @@ summary(mod)
 
 #Per tutti gli altri punti, prima bisogna fare data cleaning, altrimenti i commenti
 #e il resto sono falsati
+
+
+#MEGA UPDATE: NON FARE DATA CLEANING! 
+#Vedi commenti di Dejan su discord.
 
 
 
