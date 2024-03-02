@@ -147,20 +147,20 @@ qualitative.summary(Tipo.parto)
 qualitative.summary(Ospedale)
 qualitative.summary(Sesso)
 
-quantitative.summary(Anni.madre)
+mother.age.summary = quantitative.summary(Anni.madre)
 ### WAIT
 ### There are 2 abnormal values in Anni.madre: there is one record with age = 0
 ### and one record with age = 1. These two values are veeery weird -> ask what teh hell happened.
 ### The ohter values starts from 13 and are up to 46. 13 and 14 years is more realistic but for clarity, 
 ### ask to coach (dai mbare, chi spacchiu è na gravidanza a 13 anni?!).
-quantitative.summary(N.gravidanze)
+n.pregnancy.summary = quantitative.summary(N.gravidanze)
 ### WAIT pt. 2
 ### The maximum value here is 12 (that is for a 38 yrs woman).
 ### Well, it's actually possible, but... What the hell?! 
-quantitative.summary(Gestazione)
-quantitative.summary(Peso)
-quantitative.summary(Lunghezza)
-quantitative.summary(Cranio)
+gestational.age.summary = quantitative.summary(Gestazione)
+weight.summary = quantitative.summary(Peso)
+length.summary = quantitative.summary(Lunghezza)
+head.summary = quantitative.summary(Cranio)
 
 ## All other quantitative vars show no weird things.
 
@@ -356,6 +356,25 @@ ggplot()+
 #questa misura (proprio per niente)... Mi sa che mi sto affossando...
 
 
+
+#NO DATA CLEANING REQUIRED (except for anni.madre weird values, but htey're only 2 records)
+#See Dejan comment on discord.
+
+#These two records are anomalous only as for the mother's age value, but all other
+#variables have realistic values; for this reason the record is kept, but mother's age
+#is set to median value of this variable (outlier value is replaced with median and not
+#with mean because median is more robust against outliers, although in this case mean 
+#and median don't differ too much).
+
+newborn_data$Anni.madre[Anni.madre == 0] = mother.age.summary$median
+newborn_data$Anni.madre[Anni.madre == 1] = mother.age.summary$median
+
+attach(newborn_data)
+
+
+
+
+
 #4 - mean value for weight and length are statistically equal to the
 # corresponding values in population? 
 
@@ -532,10 +551,23 @@ pairs(newborn_data,lower.panel=panel.cor, upper.panel=panel.smooth)
 #Attenzione alle variabili qualitative: qui sto usando correlazione di Pearson
 #che per queste variabili non va bene del tutto
 
+# possible multicollinearity warnings:
+# Cranio vs Lunghezza (r = 0.6)
+# Anni.madre vs N.gravidanze (r = 0.38)
+# Gestazione vs Lunghezza (r = 0.62)
+# Gestazione vs Cranio (r = 0.46)
+# Lungehzza vs Sesso (r = 0.19) #quite safe
+# Gestazione vs Sesso (r = 0.13) #quite safe
+# Cranio vs Sesso (r = 0.15) #quite safe
+
+#Other regressor pairs are safe (r is often below 10%).
+#However this can be confirmed by computing VIF factors,
+#after model build.
+
 ##2 Compute a linear regression model with all variables
 
 #first check normality of response variable (Peso)
-shapiro.test(Peso)
+shapiro.test(Peso) #not necessary!
 
 mod = lm(Peso~., data = newborn_data)
 summary(mod)
@@ -547,6 +579,112 @@ summary(mod)
 #MEGA UPDATE: NON FARE DATA CLEANING! 
 #Vedi commenti di Dejan su discord.
 
+### Linear coefficient analysis 
+# First of all the F-test leads to a p-value < 2.2e-16, and taking an 
+# alpha = 5%, we can reject H0 hypothesis (linear model equals to constant model).
+# This means that the linear model is better than a constant value in explaining 
+# weight variability.
+# This model explains about 72.8% of response variability (that is the adjusted r-squared).
+# 
+# Considering that this kind of model is fine, now one can go further and
+# investigate if all regressors are useful for the scope, and eventually remove
+# them from the model.
+# In other words, here the step wise optimization is applied: one starts from
+# the complete model (i.e. a linear model with all possible regressors) and then
+# one tries to improve model performances by removing regressors that aren't useful,
+# i.e. regressors that aren't statistically significant in explaining response variability.
+# 
+# We can assess this aspect by computing a two tails t-test on regeressors' coefficients.
+# 
+# Coefficients that are significant (alpha = 5%):
+# - Intercept
+# - N.gravidanze
+# - Gestazione
+# - Lunghezza
+# - Cranio
+# - Tipo.parto
+# - Sesso
+# - Ospedale (dummy with 1 = osp3) 
+
+#If one wants more safety, with alpha = 1%, the significant coeff. are:
+# - Intercept
+# - Gestazione
+# - Lunghezza
+# - Cranio
+# - Sesso
+
+##3 improve the model
+
+#TODO: fare modello intermedio e vedere come va, facendo al solito i confronti
+#con i parametri statistici
+
+#Create a second model with only significant regressors
+
+mod2 = lm(Peso~Gestazione+Lunghezza+Cranio+Sesso, data = newborn_data)
+summary(mod2)
+#Statistical parameters:
+#F-test passed (reject H0 -> better than constant)
+#adjusted R-squared = 72.6%
+#all regressors have coefficient with p-value < 1%.
+
+#check if two models are significantly different -> anova
+
+anova(mod,mod2)
+#p-value < 5% ==> two models are statistically different.
+
+#TODO CHECK THE RESIDUALS! (ma questo è chiesto dopo, quindi per ora ok)
+ 
+#The best model is mod2 because it's simpler, and the performance is similar
+#(R-squared doesn't change a lot)
+
+##4 non linear and interaction effects
+
+#Non linear effetcs (no interactions)
+mod3 = update(mod2,~.+I(Gestazione^2))
+summary(mod3)
+#Statistical parameters:
+#F-test passed (reject H0 -> better than constant)
+#adjusted R-squared = 72.6%
+#all regressors have coefficient with p-value < 1%, except Gestazione^2 (0.0241)
+#AND Gestazione (0.1047). This model prefers Gestazione^2 more than Gestazione. 
+
+#Let's see what happens if wee keep only Gestazione^2
+mod4 = update(mod3,~.-Gestazione)
+summary(mod4)
+#Statistical parameters:
+#F-test passed (reject H0 -> better than constant)
+#adjusted R-squared = 72.6%
+#all regressors have coefficient with p-value < 1%.
 
 
+#just for curiosity
+mod5= update(mod2,~.+I(log(Gestazione)))
+summary(mod5)
+#Statistical parameters:
+#F-test passed (reject H0 -> better than constant)
+#adjusted R-squared = 72.6%
+#all regressors have coefficient with p-value < 1%, including log(Gestazione).
+
+mod6 = lm(Peso~Lunghezza+Cranio+Sesso+I(log(Gestazione)), data = newborn_data)
+summary(mod6)
+#Statistical parameters:
+#F-test passed (reject H0 -> better than constant)
+#adjusted R-squared = 72.5%
+#all regressors have coefficient with p-value < 1%, including log(Gestazione).
+#Respect to mod5, here logarithmic term is more significant, but has a lower coefficient (in abs).
+
+#who is better? mod5 or mod6? 
+#first of all let's see if they're different with anova:
+anova(mod5,mod6)
+#p-value < 1% ==> they're different
+#we could see AIC, BIC and other metrics.
+
+#lower these metrics, better the model
+AIC(mod,mod2,mod3,mod4,mod5,mod6) #best = mod
+BIC(mod,mod2,mod3,mod4,mod5,mod6) #best = mod4
+
+#best is mod 4 (occam).
+
+#and what about interaction effects? Bho, idk if include them or not. 
+#See lessons to check when it's fine include them
 
