@@ -284,36 +284,8 @@ N_outliers_weight #69 records (2.76% of data)
 #Fai un grafico con ggplot con più livelli, dove il primo livello è dato dalle 
 #curve di riferimento (quindi prese dalla tabella dell'articolo) e il secondo è
 #uno scatter plot della tua nuvola di punti. 
-#
-# PROPOSTA DI PROF AI
-#
-# library(ggplot2)
-# 
-# # Creazione dei dataframe come nell'esempio precedente
-# df1 <- data.frame(
-#     x = 1:10,
-#     y = (1:10)^2
-# )
-# 
-# df2 <- data.frame(
-#     x = 1:10 + runif(10, -1, 1), 
-#     y = (1:10)^2 + runif(10, -10, 10)
-# )
-# 
-# # Creazione del grafico sovrapposto con legende
-# ggplot() +
-#     geom_line(data = df1, aes(x = x, y = y, color = "Curva di riferimento"), linetype = "dashed") +  # Line plot con legenda e tratteggiato
-#     geom_point(data = df2, aes(x = x, y = y, color = "Nuvola di punti")) +  # Scatter plot con legenda
-#     scale_color_manual(values = c("Curva di riferimento" = "blue", "Nuvola di punti" = "red")) +  # Specifica dei colori per le legende
-#     theme_minimal() +
-#     labs(title = "Line Plot sovrapposto a Scatter Plot",
-#          x = "Asse X", y = "Asse Y",
-#          color = "Legenda")  # Personalizzazione del titolo della legenda
-# 
-# 
-# Generato da ProfAI - https://prof.profession.ai/
 
-#Quindi basta passare data separatamente ai vari strati, e non al ggplot() complessivo.
+#Basta passare data separatamente ai vari strati, e non al ggplot() complessivo.
 
 weights.reference = read.csv("./files/weights vs gestational age.csv")
 diameters.reference = read.csv("./files/head diameter vs gestational age.csv")
@@ -414,11 +386,6 @@ weight_mean_F = 3.2322*1000 #g
 length_mean_M = 49.8842*10 #mm
 length_mean_F = 49.1477*10 #mm
 
-
-#Replace mu = 0 with actual value taken from literature
-#t.test(Lunghezza,mu=0) #two sided (default) - alpha = 5% (default)
-#t.test(Peso,mu=0)
-
 #Before computing t-test we must check the assumptions: 
 # - Independent values: data are from different people, so they don't 
 # affect each other.
@@ -442,16 +409,9 @@ shapiro.test(Lunghezza_F)
 
 #two sided (default) - alpha = 5% (default)
 #weight
-# t.test(Peso_M, mu = weight_mean_M)
-# t.test(Peso_F, mu = weight_mean_F)
 wilcox.test(Peso_M, mu = weight_mean_M)
 wilcox.test(Peso_F, mu = weight_mean_F)
-
-
-
 #length
-# t.test(Lunghezza_M, mu = length_mean_M)
-# t.test(Lunghezza_F, mu=length_mean_F)
 wilcox.test(Lunghezza_M, mu = length_mean_M)
 wilcox.test(Lunghezza_F, mu = length_mean_F)
 
@@ -505,6 +465,17 @@ shapiro.test(Cranio_F)
 wilcox.test(Cranio~Sesso, data = newborn_data)
 # p-value < alpha (5%) -> there is a significant mean difference
 
+leveneTest(Peso~Sesso, data=newborn_data) #Test must be not significant
+#p-value = 0.373 -> test not significant (alpha=5%) -> assume equal variance
+#shapiro test already done
+wilcox.test(Peso~Sesso, data=newborn_data)
+
+leveneTest(Lunghezza~Sesso, data=newborn_data) #Test must be not significant
+#p-value = 0.00121 -> test IS significant (alpha=5%) -> variances aren't homogeneous
+#shapiro test already done
+wilcox.test(Lunghezza~Sesso, data=newborn_data)
+
+
 
 ##6 in some hospitals there are more caesarean childbirth than natural ones.
 ##Let's check if it's true.
@@ -541,10 +512,6 @@ panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
     text(0.5, 0.5, txt, cex = 1.5)
 }
 #correlations
-# Rimuovi le ultime 3 colonne dal dataframe <- se metto stringsAsFactor=T in read.csv non serve
-df_senza_ultime_3 = newborn_data[, -c((ncol(newborn_data)-2):ncol(newborn_data))]
-
-# pairs(df_senza_ultime_3,lower.panel=panel.cor, upper.panel=panel.smooth) 
 pairs(newborn_data,lower.panel=panel.cor, upper.panel=panel.smooth)
 
 #TODO: commentare quello che esce fuori
@@ -615,9 +582,6 @@ summary(mod)
 
 ##3 improve the model
 
-#TODO: fare modello intermedio e vedere come va, facendo al solito i confronti
-#con i parametri statistici
-
 #Create a second model with only significant regressors
 
 mod2 = lm(Peso~Gestazione+Lunghezza+Cranio+Sesso, data = newborn_data)
@@ -630,7 +594,7 @@ summary(mod2)
 #check if two models are significantly different -> anova
 
 anova(mod,mod2)
-#p-value < 5% ==> two models are statistically different.
+#p-value < 1% ==> two models are statistically different.
 
 #TODO CHECK THE RESIDUALS! (ma questo è chiesto dopo, quindi per ora ok)
  
@@ -686,5 +650,9 @@ BIC(mod,mod2,mod3,mod4,mod5,mod6) #best = mod4
 #best is mod 4 (occam).
 
 #and what about interaction effects? Bho, idk if include them or not. 
-#See lessons to check when it's fine include them
+#See lessons to check when it's fine include them. 
+#Bunu chiù, va bene così, non complichiamoci di più la vita cercando cose che 
+#non esistono.
+
+#SUL MODELLO SELEZIONATO FAI ANALISI DEI RESIDUI.
 
