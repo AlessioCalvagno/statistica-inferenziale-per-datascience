@@ -7,7 +7,7 @@ require(scales)
 require(moments)
 require(colorspace)
 require(car)
-
+require(lmtest)
 
 #TODO: CAPIRE COME GESTIRE GLI OUTLIER. BISOGNA FARE PULIZIA DEI DATI E DOPO FARE
 #LE CONSIDERAZIONI SUI TEST STATISTICI E IL RESTO.
@@ -644,15 +644,31 @@ anova(mod5,mod6)
 #we could see AIC, BIC and other metrics.
 
 #lower these metrics, better the model
-AIC(mod,mod2,mod3,mod4,mod5,mod6) #best = mod
-BIC(mod,mod2,mod3,mod4,mod5,mod6) #best = mod4
+aic_values = AIC(mod,mod2,mod3,mod4,mod5,mod6) #best = mod
+bic_values = BIC(mod,mod2,mod3,mod4,mod5,mod6) #best = mod4
+
+model.metrics = cbind(aic_values,bic_values[,-1])
+
+#write.csv(model.metrics,"model_metrics.csv")
 
 #best is mod 4 (occam).
 
-#and what about interaction effects? Bho, idk if include them or not. 
-#See lessons to check when it's fine include them. 
-#Bunu chiù, va bene così, non complichiamoci di più la vita cercando cose che 
-#non esistono.
-
 #SUL MODELLO SELEZIONATO FAI ANALISI DEI RESIDUI.
+
+#10. Residuals analysis
+
+#vif values to check multicollinearity
+vif(mod4)
+# all VIF are < 5 => no multicollinearity
+
+#residuals
+par(mfrow=c(2,2))
+plot(mod4)
+
+par(mfrow=c(1,1))
+bptest(mod4)
+dwtest(mod4)
+shapiro.test(mod4$residuals)
+plot(density(residuals(mod4)))
+
 
