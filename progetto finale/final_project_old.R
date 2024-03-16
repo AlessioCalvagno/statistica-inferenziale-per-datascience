@@ -466,6 +466,10 @@ panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
 #correlations
 pairs(newborn_data,lower.panel=panel.cor, upper.panel=panel.smooth)
 
+#TODO: commentare quello che esce fuori
+#Attenzione alle variabili qualitative: qui sto usando correlazione di Pearson
+#che per queste variabili non va bene del tutto
+
 # possible multicollinearity warnings:
 # Cranio vs Lunghezza (r = 0.6)
 # Anni.madre vs N.gravidanze (r = 0.38)
@@ -537,6 +541,8 @@ summary(mod2)
 
 anova(mod,mod2)
 #p-value < 1% ==> two models are statistically different.
+
+#TODO CHECK THE RESIDUALS! (ma questo è chiesto dopo, quindi per ora ok)
  
 #The best model is mod2 because it's simpler, and the performance is similar
 #(R-squared doesn't change a lot)
@@ -601,13 +607,12 @@ model.metrics = cbind(aic_values,bic_values[,-1])
 vif(mod4)
 # all VIF are < 5 => no multicollinearity
 
-#residuals plot
+#residuals
 # par(mfrow=c(2,2))
 plot(mod4)
 
 # par(mfrow=c(1,1))
 
-#11 statistical test on residuals
 #leverage check
 lev = hatvalues(mod4)
 plot(lev)
@@ -639,7 +644,7 @@ dwtest(mod4)
 shapiro.test(mod4$residuals)
 plot(density(residuals(mod4)))
 
-#12 prediction
+#precition
 #New data:
 # Gender = F
 # N.pregnancy = 2 (before this one)
@@ -656,7 +661,7 @@ new_value = data.frame(Sesso="F",N.gravidanze=2,Gestazione=39,
 
 predict(mod4,new_value)
 
-#13 model visualization
+# model visualization
 
 mod4_simplified = lm(Peso ~ Lunghezza + I(Gestazione^2), 
                       data = newborn_data)
