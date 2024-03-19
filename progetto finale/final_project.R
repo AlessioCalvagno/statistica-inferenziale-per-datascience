@@ -139,15 +139,9 @@ qualitative.summary(Ospedale)
 qualitative.summary(Sesso)
 
 mother.age.summary = quantitative.summary(Anni.madre)
-### WAIT
 ### There are 2 abnormal values in Anni.madre: there is one record with age = 0
-### and one record with age = 1. These two values are veeery weird -> ask what teh hell happened.
-### The ohter values starts from 13 and are up to 46. 13 and 14 years is more realistic but for clarity, 
-### ask to coach (dai mbare, chi spacchiu è na gravidanza a 13 anni?!).
+### and one record with age = 1. See comments in report
 n.pregnancy.summary = quantitative.summary(N.gravidanze)
-### WAIT pt. 2
-### The maximum value here is 12 (that is for a 38 yrs woman).
-### Well, it's actually possible, but... What the hell?! 
 gestational.age.summary = quantitative.summary(Gestazione)
 weight.summary = quantitative.summary(Peso)
 length.summary = quantitative.summary(Lunghezza)
@@ -156,6 +150,7 @@ head.summary = quantitative.summary(Cranio)
 ## All other quantitative vars show no weird things.
 
 ################# DATA CLEANING ####################
+#Same considerations are in the attached report.
 
 #First step: Missing values.
 #First missing values must be checked and handled (if there is any).
@@ -281,6 +276,7 @@ ggplot()+
     theme_hc()+
     labs(title="Weights - sample data and reference", x = "Gestational age (weeks)", y = "Weight (g)", color = "")
 
+#There are no clear evidence about anomalies in other variables. 
 
 #NO DATA CLEANING REQUIRED (except for anni.madre weird values, but they're only 2 records)
 
@@ -294,10 +290,6 @@ newborn_data$Anni.madre[Anni.madre == 0] = mother.age.summary$median
 newborn_data$Anni.madre[Anni.madre == 1] = mother.age.summary$median
 
 attach(newborn_data)
-
-
-
-
 
 #4 - mean value for weight and length are statistically equal to the
 # corresponding values in population? 
@@ -504,18 +496,8 @@ summary(mod)
 # i.e. regressors that aren't statistically significant in explaining response variability.
 # 
 # We can assess this aspect by computing a two tails t-test on regeressors' coefficients.
-# 
-# Coefficients that are significant (alpha = 5%):
-# - Intercept
-# - N.gravidanze
-# - Gestazione
-# - Lunghezza
-# - Cranio
-# - Tipo.parto
-# - Sesso
-# - Ospedale (dummy with 1 = osp3) 
 
-#If one wants more safety, with alpha = 1%, the significant coeff. are:
+#Coefficients that are significant (alpha = 1%):
 # - Intercept
 # - Gestazione
 # - Lunghezza
@@ -592,8 +574,6 @@ model.metrics = cbind(aic_values,bic_values[,-1])
 #write.csv(model.metrics,"model_metrics.csv")
 
 #best is mod 4 (occam).
-
-#SUL MODELLO SELEZIONATO FAI ANALISI DEI RESIDUI.
 
 #10. Residuals analysis
 
@@ -675,7 +655,7 @@ p = plot_ly(newborn_data, x = ~Lunghezza, y = ~Gestazione, z = ~Peso,
               opacity = 0.50,
               showscale = F)
 
-# Visualizza il grafico
+# Display the chart
 p
 
 
